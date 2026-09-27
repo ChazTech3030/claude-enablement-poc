@@ -1,0 +1,51 @@
+# Claude updates: collect every official update source and publish the dashboard to /c/internal/updates/.
+# History persists in S3 (state/updates/state.json), so items remain after they drop off a feed.
+name: updates
+on:
+  schedule:
+    - cron: "15 */3 * * *"   # every 3 hours
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["content/ecosystem/sources.yml", "builder/dk/updates*.py"]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: updates
+  cancel-in-progress: false
+
+jobs:
+  updates:
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://${{ vars.DK_DELIVERY_DOMAIN }}/c/internal/updates/
+    env:
+      DK_BUCKET: ${{ vars.DK_BUCKET }}
+      DK_DISTRIBUTION_ID: ${{ vars.DK_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q -e builder
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Collect updates
+        run: dk updates --out build/updates | tee collect.log
+      - name: Publish dashboard
+        run: |
+          aws s3 sync build/updates "s3://$DK_BUCKET/c/internal/updates/" --delete --only-show-errors \
+            --cache-control "no-cache"
+          aws cloudfront create-invalidation --distribution-id "$DK_DISTRIBUTION_ID" \
+            --paths "/c/internal/updates/*" >/dev/null
+      - name: Summary
+        if: always()
+        run: |
+          { echo "### Claude updates"; echo; echo '```'; cat collect.log 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          ! grep -q "^FAIL" collect.log   # mark the run failed if any source failed, so it is noticed

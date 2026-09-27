@@ -60,7 +60,7 @@ th {{ font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; color:var
 code {{ font-size:.85em; color:var(--muted); }} a {{ color:inherit; }} .note {{ color:var(--warn); }}
 </style></head><body><main>
 <h1>Content freshness</h1>
-<p class="sub">Generated {generated_at} from content version {html.escape(version)}. Internal: Version 1 only.</p>
+<p class="sub">Generated {generated_at} from content version {html.escape(version)}. Internal: Version 1 only. <a href="../updates/">Claude updates</a></p>
 {issue_note}
 <div class="table-wrap"><table>
 <thead><tr><th>Module</th><th>Group</th><th>Owner</th><th>Cadence</th><th>Last reviewed</th><th>Status</th><th>Customers</th><th>Open issues</th></tr></thead>

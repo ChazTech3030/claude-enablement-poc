@@ -135,12 +135,16 @@ class Feature(Strict):
 
 
 class Source(Strict):
+    """A watched update source (content/ecosystem/sources.yml). See dk/updates.py for how each type is read."""
     id: str
     title: str
-    type: Literal["feed", "page_diff"]
+    type: Literal["feed", "release_notes_page", "news_page", "blog_page", "marketplace", "page_diff"]
     url: str
+    category: str = ""  # dashboard grouping, e.g. "Claude Code"
+    noun: str = "plugin"  # marketplace entries: "plugin" or "skill"
     url_verified: bool = False
     owner: str
+    enabled: bool = True
 
 
 class Event(Strict):

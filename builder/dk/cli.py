@@ -134,6 +134,21 @@ def cmd_unpreview(args) -> None:
     deploy.invalidate([f"/{prefix}/*"], wait=False)
 
 
+def cmd_updates(args) -> None:
+    """Collect Claude updates from every enabled source and render the updates dashboard."""
+    from . import updates, updates_page
+    repo = _repo(args)
+    sources = [s for s in repo.sources.values() if s.enabled and s.type != "page_diff"]
+    store = updates.Store(Path(args.state) if args.state else None)
+    if args.render_only:
+        state = store.load()
+    else:
+        state, added = updates.run(sources, store)
+        print(f"{len(added)} new update(s); {len(state['items'])} in history")
+    target = updates_page.write(state, sources, Path(args.out))
+    print(f"updates dashboard -> {target}")
+
+
 def cmd_preview_index(args) -> None:
     from . import preview
     repo = _repo(args)
@@ -248,6 +263,12 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("unpreview", help="delete a PR preview prefix")
     s.add_argument("--pr", required=True, type=int)
     s.set_defaults(fn=cmd_unpreview)
+
+    s = sub.add_parser("updates", help="collect Claude updates from all sources and render the updates dashboard")
+    s.add_argument("--state", help="local state file (default: s3://$DK_BUCKET/state/updates/state.json)")
+    s.add_argument("--out", default="build/updates")
+    s.add_argument("--render-only", action="store_true", help="re-render from saved state without fetching")
+    s.set_defaults(fn=cmd_updates)
 
     s = sub.add_parser("preview-index", help="render the PR preview landing page")
     s.add_argument("--affected", help="affected.json from dk plan")
