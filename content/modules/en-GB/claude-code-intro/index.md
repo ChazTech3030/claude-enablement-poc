@@ -26,3 +26,11 @@ Claude Code asks before it edits files or runs commands. You can approve once, a
 ## Connectors
 
 Model Context Protocol (MCP) servers let Claude Code reach other systems, such as your issue tracker. Only connect systems your organisation has approved.
+
+## Review habits
+
+Treat every change Claude Code proposes as you would a colleague's pull request:
+
+- Read the whole diff, not just the summary.
+- Run the tests yourself before committing.
+- Ask Claude Code to explain any change you do not understand.
