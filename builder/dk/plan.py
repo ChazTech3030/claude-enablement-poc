@@ -46,8 +46,12 @@ def affected(repo: Repo, files: list[str] | None) -> dict:
             mark(rev.get(parts[3], []), f"module {parts[3]}")
         elif parts[:2] == ("content", "changelog") and len(parts) == 3:
             mark(rev.get(p.stem, []), f"changelog {p.stem}")
-        elif parts[:2] == ("content", "bundles") and len(parts) == 3:
-            mark([c.slug for c in repo.active_customers() if p.stem in c.bundles], f"bundle {p.stem}")
+        elif parts[:2] == ("content", "groups") and len(parts) == 3:
+            # a group's title, summary or module order shows on every site that displays that group
+            holders = {c.slug for c in repo.active_customers() if p.stem in c.groups}
+            if p.stem in repo.groups:
+                holders |= {s for m in repo.groups[p.stem].modules for s in rev.get(m, [])}
+            mark(sorted(holders), f"group {p.stem}")
         elif parts[:3] == ("content", "customers", "assets") and len(parts) >= 5:
             mark([parts[3]], f"assets {parts[3]}")
         elif parts[:2] == ("content", "customers") and len(parts) == 3:

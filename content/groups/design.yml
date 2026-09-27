@@ -1,0 +1,4 @@
+id: design
+title: "Design"
+summary: "Using Claude for design exploration."
+modules: [design-with-artifacts]

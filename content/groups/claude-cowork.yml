@@ -1,0 +1,4 @@
+id: claude-cowork
+title: "Claude Cowork"
+summary: "Handing Claude multi-step tasks and reviewing the results."
+modules: [cowork-overview]

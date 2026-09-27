@@ -1,0 +1,8 @@
+id: claude-code-connectors
+title: Connecting Claude Code to your tools
+owner: ChazTech3030
+tags: [engineering, claude-code]
+claude_features: [claude-code, mcp]
+review_cadence_days: 30
+last_reviewed: 2026-09-27
+summary: What MCP connectors are and the approval rule for adding one.

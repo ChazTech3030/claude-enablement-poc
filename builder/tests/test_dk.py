@@ -25,22 +25,35 @@ def scratch(tmp_path):
     return dst
 
 
-def test_resolution_order_add_exclude(repo):
-    assert repo.resolve("acme") == ["governance-intro", "data-handling-basics", "claude-code-intro"]
-    assert repo.resolve("brightwater")[-1] == "admin-controls"
+def test_resolution_by_groups_add_exclude(repo):
+    acme = repo.resolve("acme")
+    assert acme[:3] == ["chat-getting-started", "prompting-fundamentals", "projects-and-artifacts"]
+    assert "admin-controls" not in acme                      # excluded from its governance group
+    assert not {"design-with-artifacts", "science-data-analysis"} & set(acme)  # groups not assigned
+    assert repo.resolve("brightwater")[-1] == "admin-controls"  # added from a group it does not hold
+
+
+def test_sections_place_added_module_under_its_group(repo):
+    titles = [g.id for g, _ in repo.sections("brightwater")]
+    assert titles == ["claude-chat", "claude-cowork", "research", "governance"]
+    assert dict((g.id, m) for g, m in repo.sections("brightwater"))["governance"] == ["admin-controls"]
 
 
 def test_reverse_lookup_excludes_revoked(repo):
     rev = repo.reverse()
-    assert rev["claude-code-intro"] == ["acme", "brightwater"]
+    assert rev["prompting-fundamentals"] == ["acme", "brightwater"]
+    assert rev["design-with-artifacts"] == []
     assert all("oldco" not in s for s in rev.values())
 
 
 @pytest.mark.parametrize("files,expected", [
     (["content/modules/en-GB/governance-intro/index.md"], ["acme"]),                 # AT-01 unique module
-    (["content/modules/en-GB/claude-code-intro/index.md"], ["acme", "brightwater"]),  # AT-02 shared module
+    (["content/modules/en-GB/prompting-fundamentals/index.md"], ["acme", "brightwater"]),  # AT-02 shared
     (["content/customers/brightwater.yml"], ["brightwater"]),
-    (["content/bundles/builder-essentials.yml"], ["brightwater"]),
+    (["content/groups/research.yml"], ["brightwater"]),
+    (["content/groups/governance.yml"], ["acme", "brightwater"]),                    # brightwater via add
+    (["content/groups/science.yml"], []),                                            # nobody holds it
+    (["content/changelog/cowork-overview.yml"], ["brightwater"]),
     (["builder/dk/theme/print.css"], ["acme", "brightwater"]),                        # AT-22
     (["content/customers/oldco.yml"], []),                                            # revoked: publish only
     (["content/ecosystem/events/x.yml"], []),
@@ -86,7 +99,7 @@ def test_g2_manifest_unknown_module(scratch):  # AT-10
 
 def test_g2_reserved_slug_and_bad_domain(scratch):
     (scratch / "customers/internal.yml").write_text(
-        "slug: internal\nname: X\nstatus: active\nbundles: [governance-starter]\nallowlist: ['http://bad']\n")
+        "slug: internal\nname: X\nstatus: active\ngroups: [governance]\nallowlist: ['http://bad']\n")
     with pytest.raises(ContentError) as e:
         Repo.load(scratch)
     assert "reserved" in str(e.value)
@@ -107,14 +120,42 @@ def test_g5_oversized_image_and_alt(scratch):  # AT-10
     assert any("exceeds" in x for x in problems) and any("alt text" in x for x in problems)
 
 
-def test_changelog_rule(repo):
+def test_change_rules_need_changelog_and_review_bump(repo):
     changed = ["content/modules/en-GB/governance-intro/index.md"]
-    assert gates.check_changelog(repo, changed, []) != []
-    assert gates.check_changelog(repo, changed + ["content/changelog/governance-intro.md"], []) == []
+    reviewed = repo.modules["governance-intro"].meta.last_reviewed
+    soon = reviewed + dt.timedelta(days=3)
+    problems = gates.check_changelog(repo, changed, [], today=soon)
+    assert any("changelog" in p for p in problems) and any("last_reviewed" in p for p in problems)
+    full = changed + ["content/changelog/governance-intro.yml", "content/modules/en-GB/governance-intro/meta.yml"]
+    assert gates.check_changelog(repo, full, [], today=soon) == []
+    # bumped long ago does not count as a review of this change
+    assert any("last_reviewed" in p for p in gates.check_changelog(repo, full, [], today=reviewed + dt.timedelta(days=60)))
     assert gates.check_changelog(repo, changed, ["no-changelog"]) == []
+
+
+def test_changelog_yaml_validated(scratch):
+    (scratch / "changelog/governance-intro.yml").write_text("entries:\n  - date: 2999-01-01\n    change: Future\n")
+    with pytest.raises(ContentError, match="future"):
+        Repo.load(scratch)
+
+
+def test_module_must_be_in_exactly_one_group(scratch):
+    g = scratch / "groups/design.yml"
+    g.write_text(g.read_text().replace("[design-with-artifacts]", "[design-with-artifacts, governance-intro]"))
+    with pytest.raises(ContentError, match="already in group"):
+        Repo.load(scratch)
+
+
+def test_review_command_bumps_date_and_logs(scratch):
+    from dk.cli import main
+    main(["--content", str(scratch), "review", "cowork-overview", "--note", "Clarified the briefing steps.",
+          "--date", dt.date.today().isoformat()])
+    repo = Repo.load(scratch)
+    assert repo.modules["cowork-overview"].meta.last_reviewed == dt.date.today()
+    assert repo.modules["cowork-overview"].changelog.newest_first()[0].change == "Clarified the briefing steps."
 
 
 def test_match_events_offline(repo):  # AT-23
     res = {r["event"]: r for r in match_events(repo, None)}
     ev = res["2026-09-22-mock-claude-code-permissions"]
-    assert ev["modules"] == ["claude-code-intro"] and ev["customers"] == ["acme", "brightwater"]
+    assert ev["modules"] == ["claude-code-connectors", "claude-code-intro"] and ev["customers"] == ["acme"]

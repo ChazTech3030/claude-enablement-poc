@@ -1,0 +1,4 @@
+id: claude-code
+title: "Claude Code"
+summary: "Working with Claude Code in your terminal and editor."
+modules: [claude-code-intro, claude-code-connectors]

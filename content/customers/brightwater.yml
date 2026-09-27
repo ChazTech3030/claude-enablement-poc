@@ -3,7 +3,7 @@ slug: brightwater
 name: Brightwater Utilities (fictional)
 status: active
 access_end: 2027-06-30
-bundles: [builder-essentials]
+groups: [claude-chat, claude-cowork, research]
 add: [admin-controls]
 exclude: []
 allowlist:

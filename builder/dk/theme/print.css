@@ -44,11 +44,25 @@ img { max-width: 100%; }
 .dk-stamp .notice { font-weight: bold; margin-top: 4mm; }
 
 .toc { page-break-after: always; }
-.toc ol { font-size: 11pt; line-height: 1.9; }
+.toc > ol { font-size: 11pt; line-height: 1.8; padding-left: 1.2em; }
+.toc > ol > li { font-weight: bold; margin-top: 2mm; }
+.toc ol ol { font-weight: normal; font-size: 10pt; line-height: 1.7; }
 .toc a::after { content: leader(".") target-counter(attr(href), page); }
 
-.module { page-break-before: always; }
-.module:first-of-type { page-break-before: auto; }
+/* One chapter per group; modules are short snippets, so they flow rather than each taking a page. */
+.group { page-break-before: always; }
+.group-title { font-size: 22pt; margin-bottom: 1mm; border-bottom: 3px solid var(--brand-accent); padding-bottom: 2mm; }
+.group-summary { color: #444; margin-top: 2mm; }
+.module { margin-top: 8mm; }
+.module h2 { font-size: 15pt; border-left: 4px solid var(--brand-primary); padding-left: 3mm; page-break-after: avoid; }
+.module h3, .module h4 { page-break-after: avoid; }
+.module img { border: 1px solid #d0d4da; border-radius: 2mm; max-height: 90mm; }
+.module-footer { margin-top: 4mm; padding-top: 2mm; border-top: 1px solid #d0d4da; font-size: 8.5pt; color: #444; }
+.module-footer h4 { font-size: 9pt; color: #333; margin: 3mm 0 1mm; }
+.module-footer table { font-size: 8pt; margin: 1mm 0; }
+.module-footer table td:first-child { white-space: nowrap; width: 22mm; }
+.reviewed { font-style: italic; margin: 0; }
+.changes-more { font-style: italic; margin: 1mm 0 0; }
 
 table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 9pt; }
 th, td { border: 1px solid #d0d4da; padding: 4px 6px; text-align: left; vertical-align: top; }

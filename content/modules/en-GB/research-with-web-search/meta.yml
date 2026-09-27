@@ -1,0 +1,8 @@
+id: research-with-web-search
+title: Research with web search
+owner: ChazTech3030
+tags: [research]
+claude_features: [web-search]
+review_cadence_days: 30
+last_reviewed: 2026-09-27
+summary: Getting sourced answers and checking them.

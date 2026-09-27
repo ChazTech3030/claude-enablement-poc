@@ -1,4 +1,8 @@
-"""Per-customer site (MkDocs Material) and stamped PDF (WeasyPrint) build (plan 6.5)."""
+"""Per-customer site (MkDocs Material) and stamped PDF (WeasyPrint) build (plan 6.5).
+
+Site: a home page of the customer's groups, then one page per group with each module as a collapsible section.
+PDF: one chapter per group, one section per module, changelog as a table.
+"""
 from __future__ import annotations
 
 import datetime as dt
@@ -14,6 +18,7 @@ from pathlib import Path
 import markdown
 import yaml
 
+from .model import Changelog
 from .repo import Repo
 
 THEME = Path(__file__).parent / "theme"
@@ -28,6 +33,9 @@ MD_EXTENSIONS = [
     "pymdownx.tasklist",
 ]
 SNAPSHOT_NOTICE = "Point-in-time snapshot. The live URL is authoritative and may have changed since this date."
+PDF_CHANGELOG_ROWS = 5
+_FENCE = re.compile(r"^(```|~~~)")
+_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:", re.I)
 
 
 def content_version(repo_root: Path) -> str:
@@ -69,45 +77,103 @@ def make_context(repo_root: Path, delivery_domain: str, prefix: str = "c") -> Bu
     )
 
 
-def _changelog(repo: Repo, module_id: str) -> str:
-    p = repo.root / "changelog" / f"{module_id}.md"
-    if not p.exists():
+# ---------------------------------------------------------------- module markdown helpers
+
+def module_body(repo: Repo, module_id: str, demote: int = 1, link_prefix: str = "") -> str:
+    """Module markdown without its H1, headings demoted, relative links re-rooted under link_prefix."""
+    text = (repo.modules[module_id].path / "index.md").read_text(encoding="utf-8")
+    out, in_fence, dropped_h1 = [], False, False
+    for line in text.splitlines():
+        if _FENCE.match(line.strip()):
+            in_fence = not in_fence
+        if not in_fence:
+            m = re.match(r"^(#{1,6}) (.*)$", line)
+            if m:
+                if len(m.group(1)) == 1 and not dropped_h1:
+                    dropped_h1 = True
+                    continue
+                line = "#" * min(6, len(m.group(1)) + demote) + " " + m.group(2)
+            if link_prefix:
+                line = re.sub(r"(\]\()([^)\s]+)", lambda mm: mm.group(1) + _reroot(mm.group(2), link_prefix), line)
+                line = re.sub(r'(\bsrc=")([^"]+)', lambda mm: mm.group(1) + _reroot(mm.group(2), link_prefix), line)
+        out.append(line)
+    return "\n".join(out).strip()
+
+
+def _reroot(target: str, prefix: str) -> str:
+    if _SCHEME.match(target) or target.startswith(("#", "/")):
+        return target
+    return prefix + target
+
+
+def reviewed_line(repo: Repo, module_id: str) -> str:
+    d = repo.modules[module_id].meta.last_reviewed
+    return f"Last reviewed {d.day} {d:%B %Y}"
+
+
+def changelog_table(log: Changelog | None, limit: int | None = None) -> str:
+    if not log:
         return ""
-    # demote headings so entries sit under the page's "Changelog" heading
-    return re.sub(r"^(#{1,5}) ", lambda m: "#" + m.group(1) + " ", p.read_text(encoding="utf-8"), flags=re.M)
+    rows = log.newest_first()
+    shown = rows[:limit] if limit else rows
+    lines = ["| Date | Change |", "|---|---|"]
+    lines += [f"| {e.date.isoformat()} | {e.change.replace('|', '/')} |" for e in shown]
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- site
+
+def _home_page(repo: Repo, slug: str, ctx: BuildContext) -> str:
+    c = repo.customers[slug]
+    cards = []
+    for g, mods in repo.sections(slug):
+        n = len(mods)
+        cards.append(
+            f'<a class="dk-card" href="{g.id}/">'
+            f'<span class="dk-card__title">{html.escape(g.title)}</span>'
+            f'<span class="dk-card__summary">{html.escape(g.summary)}</span>'
+            f'<span class="dk-card__count">{n} topic{"s" if n != 1 else ""}</span></a>'
+        )
+    return "\n".join([
+        "---", "hide:", "  - toc", "---", "",
+        f"# {c.name}", "",
+        '<p class="dk-lede">Your Claude enablement material, kept up to date by Version 1. '
+        "Choose an area to begin.</p>", "",
+        f'<div class="dk-cards">{"".join(cards)}</div>', "",
+        f'<p class="dk-pdf"><a class="md-button" href="{ctx.pdf_name(slug)}">Download the PDF edition</a></p>', "",
+        f"<small>Content version {ctx.version}.</small>", "",
+    ])
+
+
+def _group_page(repo: Repo, group, modules: list[str]) -> str:
+    """Group overview: attached to the group's nav section (navigation.indexes)."""
+    cards = "".join(
+        f'<a class="dk-card" href="{m}/"><span class="dk-card__title">{html.escape(repo.modules[m].meta.title)}</span>'
+        f'<span class="dk-card__summary">{html.escape(repo.modules[m].meta.summary)}</span></a>'
+        for m in modules
+    )
+    return "\n".join([
+        "---", "hide:", "  - toc", "---", "",
+        f"# {group.title}", "",
+        f'<p class="dk-lede">{html.escape(group.summary)}</p>', "",
+        f'<div class="dk-cards">{cards}</div>', "",
+    ])
 
 
 def _module_page(repo: Repo, module_id: str) -> str:
-    mod = repo.modules[module_id]
-    body = (mod.path / "index.md").read_text(encoding="utf-8").rstrip()
-    meta = mod.meta
-    footer = (
-        f"\n\n---\n\n*Last reviewed {meta.last_reviewed:%d %B %Y}. "
-        f"Reviewed every {meta.review_cadence_days} days.*\n"
-    )
-    log = _changelog(repo, module_id)
-    if log:
-        footer += f"\n## Changelog\n\n{log.strip()}\n"
-    return body + footer
-
-
-def _home_page(repo: Repo, slug: str, modules: list[str], ctx: BuildContext) -> str:
-    c = repo.customers[slug]
+    """One module per page: title, summary, body, review status and changelog table."""
+    meta = repo.modules[module_id].meta
     lines = [
-        f"# {c.name}",
-        "",
-        "Welcome to your Claude enablement material. This site is kept up to date by Version 1; "
-        "the modules below reflect the latest reviewed content.",
-        "",
-        f"[Download the PDF edition]({ctx.pdf_name(slug)}){{ .md-button }}",
-        "",
-        "## Modules",
-        "",
+        f"# {meta.title}", "",
+        f'<p class="dk-lede">{html.escape(meta.summary)}</p>', "",
+        module_body(repo, module_id, demote=0), "",
+        '<div class="dk-module__footer" markdown="1">', "",
+        f"*{reviewed_line(repo, module_id)}. Reviewed every {meta.review_cadence_days} days.*", "",
     ]
-    for m in modules:
-        meta = repo.modules[m].meta
-        lines.append(f"- [{meta.title}]({m}/index.md): {meta.summary}")
-    lines += ["", f"<small>Content version {ctx.version}.</small>", ""]
+    table = changelog_table(repo.modules[module_id].changelog)
+    if table:
+        lines += ["## Changes", "", table, ""]
+    lines += ["</div>", ""]
     return "\n".join(lines)
 
 
@@ -125,27 +191,30 @@ def build_site(repo: Repo, slug: str, ctx: BuildContext, out: Path, pdf: bool = 
     pdf=False writes a placeholder (local development without Pango only).
     """
     c = repo.customers[slug]
-    modules = repo.resolve(slug)
+    sections = repo.sections(slug)
     work = out / "_src"
     docs = work / "docs"
     if out.exists():
         shutil.rmtree(out)
     docs.mkdir(parents=True)
 
-    (docs / "index.md").write_text(_home_page(repo, slug, modules, ctx), encoding="utf-8")
-    for m in modules:
-        src = repo.modules[m].path
-        dst = docs / m
-        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("meta.yml"))
-        (dst / "index.md").write_text(_module_page(repo, m), encoding="utf-8")
+    (docs / "index.md").write_text(_home_page(repo, slug, ctx), encoding="utf-8")
+    for group, modules in sections:
+        gdir = docs / group.id
+        gdir.mkdir()
+        (gdir / "index.md").write_text(_group_page(repo, group, modules), encoding="utf-8")
+        for m in modules:  # one page per module, with its assets (images) beside it
+            shutil.copytree(repo.modules[m].path, gdir / m, ignore=shutil.ignore_patterns("meta.yml"))
+            (gdir / m / "index.md").write_text(_module_page(repo, m), encoding="utf-8")
 
     assets = docs / "assets"
-    assets.mkdir()
+    shutil.copytree(THEME / "assets", assets)
     (assets / "extra.css").write_text(_extra_css(c.branding), encoding="utf-8")
     logo = c.branding.get("logo")
     if logo:
         shutil.copy(repo.root / "customers" / logo, assets / ("logo" + Path(logo).suffix))
 
+    scheme_extra = {"primary": "custom", "accent": "custom"}
     config = {
         "site_name": f"{c.name}: Claude enablement",
         "site_url": ctx.site_url(slug),
@@ -156,10 +225,22 @@ def build_site(repo: Repo, slug: str, ctx: BuildContext, out: Path, pdf: bool = 
             "name": "material",
             "custom_dir": str((THEME / "overrides").resolve()),
             "language": "en",
-            "features": ["navigation.sections", "navigation.top", "content.code.copy"],
-            "palette": {"scheme": "default", "primary": "custom", "accent": "custom"},
+            "font": False,  # no Google Fonts: learner pages make no third-party requests
+            # No navigation.sections/expand: each group is a collapsible nav section (open on its own pages);
+            # navigation.indexes attaches the group overview to the section title.
+            "features": ["navigation.indexes", "navigation.top", "navigation.footer", "navigation.tracking",
+                         "toc.follow", "content.code.copy", "search.highlight"],
+            "palette": [
+                {"media": "(prefers-color-scheme)",
+                 "toggle": {"icon": "material/brightness-auto", "name": "Switch to light mode"}},
+                {"media": "(prefers-color-scheme: light)", "scheme": "default", **scheme_extra,
+                 "toggle": {"icon": "material/brightness-7", "name": "Switch to dark mode"}},
+                {"media": "(prefers-color-scheme: dark)", "scheme": "slate", **scheme_extra,
+                 "toggle": {"icon": "material/brightness-4", "name": "Switch to system preference"}},
+            ],
         },
         "extra_css": ["assets/extra.css"],
+        "extra_javascript": ["assets/dk.js"],
         "extra": {
             "content_version": ctx.version,
             "generated_at": ctx.generated_at,
@@ -167,7 +248,10 @@ def build_site(repo: Repo, slug: str, ctx: BuildContext, out: Path, pdf: bool = 
             "customer_name": c.name,
             "generator": False,
         },
-        "nav": [{"Home": "index.md"}] + [{repo.modules[m].meta.title: f"{m}/index.md"} for m in modules],
+        "nav": [{"Home": "index.md"}] + [
+            {g.title: [f"{g.id}/index.md"] + [{repo.modules[m].meta.title: f"{g.id}/{m}/index.md"} for m in mods]}
+            for g, mods in sections
+        ],
         "markdown_extensions": [
             "admonition",
             "attr_list",
@@ -207,16 +291,20 @@ def build_site(repo: Repo, slug: str, ctx: BuildContext, out: Path, pdf: bool = 
 def _absolute_images(html_text: str, base: Path) -> str:
     def fix(m: re.Match) -> str:
         src = m.group(2)
-        if re.match(r"^[a-z][a-z0-9+.-]*:", src, re.I):
+        if _SCHEME.match(src):
             return m.group(0)
         return f'{m.group(1)}{(base / src).resolve().as_uri()}"'
 
     return re.sub(r'(<img\b[^>]*?\bsrc=")([^"]+)"', fix, html_text)
 
 
+def _md(text: str) -> str:
+    return markdown.Markdown(extensions=MD_EXTENSIONS).convert(text)
+
+
 def print_html(repo: Repo, slug: str, ctx: BuildContext) -> str:
     c = repo.customers[slug]
-    modules = repo.resolve(slug)
+    sections = repo.sections(slug)
     primary = c.branding.get("--brand-primary", "#1f5fa8")
     accent = c.branding.get("--brand-accent", "#f2a900")
     live = ctx.site_url(slug)
@@ -227,8 +315,13 @@ def print_html(repo: Repo, slug: str, ctx: BuildContext) -> str:
     if logo := c.branding.get("logo"):
         logo_html = f'<img class="logo" alt="{html.escape(c.name)} logo" src="{(repo.root / "customers" / logo).resolve().as_uri()}">'
 
-    parts = [
-        f"""<section class="title-page">
+    toc = "".join(
+        f'<li><a href="#grp-{g.id}">{html.escape(g.title)}</a><ol>'
+        + "".join(f'<li><a href="#mod-{m}">{html.escape(repo.modules[m].meta.title)}</a></li>' for m in mods)
+        + "</ol></li>"
+        for g, mods in sections
+    )
+    parts = [f"""<section class="title-page">
   {logo_html}
   <h1 class="doc-title">Claude enablement</h1>
   <p class="customer">{html.escape(c.name)}</p>
@@ -240,15 +333,28 @@ def print_html(repo: Repo, slug: str, ctx: BuildContext) -> str:
     <p class="notice">{SNAPSHOT_NOTICE}</p>
   </div>
 </section>
-<nav class="toc"><h2>Contents</h2><ol>"""
-        + "".join(f'<li><a href="#mod-{m}">{html.escape(repo.modules[m].meta.title)}</a></li>' for m in modules)
-        + "</ol></nav>"
-    ]
-    for m in modules:
-        md = markdown.Markdown(extensions=MD_EXTENSIONS)
-        body = md.convert(_module_page(repo, m))
-        body = _absolute_images(body, repo.modules[m].path)
-        parts.append(f'<article class="module" id="mod-{m}">{body}</article>')
+<nav class="toc"><h2>Contents</h2><ol>{toc}</ol></nav>"""]
+
+    for g, mods in sections:
+        parts.append(f'<section class="group" id="grp-{g.id}"><h1 class="group-title">{html.escape(g.title)}</h1>'
+                     f'<p class="group-summary">{html.escape(g.summary)}</p>')
+        for m in mods:
+            meta = repo.modules[m].meta
+            body = _absolute_images(_md(module_body(repo, m, demote=1)), repo.modules[m].path)
+            log = repo.modules[m].changelog
+            table = changelog_table(log, PDF_CHANGELOG_ROWS)
+            more = ""
+            if log and len(log.entries) > PDF_CHANGELOG_ROWS:
+                more = (f'<p class="changes-more">{len(log.entries) - PDF_CHANGELOG_ROWS} earlier changes: '
+                        f"see the live version.</p>")
+            parts.append(
+                f'<article class="module" id="mod-{m}"><h2>{html.escape(meta.title)}</h2>{body}'
+                f'<div class="module-footer"><p class="reviewed">{reviewed_line(repo, m)}. '
+                f"Reviewed every {meta.review_cadence_days} days.</p>"
+                + (f'<h4>Recent changes</h4>{_md(table)}{more}' if table else "")
+                + "</div></article>"
+            )
+        parts.append("</section>")
 
     css = (THEME / "print.css").read_text(encoding="utf-8")
     return f"""<!doctype html>

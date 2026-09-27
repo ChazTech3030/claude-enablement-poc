@@ -50,10 +50,39 @@ class Meta(Strict):
         return ((today or dt.date.today()) - self.due_date()).days
 
 
-class Bundle(Strict):
+class Group(Strict):
+    """A product area customers are given access to (e.g. Claude Code). Holds small modules, in order."""
     id: str
     title: str
+    summary: str
+    icon: str = ""  # optional Material icon name, e.g. "material-console"
     modules: list[str] = Field(min_length=1)
+
+    @field_validator("id")
+    @classmethod
+    def _kebab(cls, v: str) -> str:
+        if not KEBAB.match(v):
+            raise ValueError("id must be kebab-case")
+        return v
+
+
+class ChangeEntry(Strict):
+    date: dt.date
+    change: str = Field(min_length=3)
+
+    @field_validator("date")
+    @classmethod
+    def _not_future(cls, v: dt.date) -> dt.date:
+        if v > dt.date.today():
+            raise ValueError("changelog date is in the future")
+        return v
+
+
+class Changelog(Strict):
+    entries: list[ChangeEntry] = Field(min_length=1)
+
+    def newest_first(self) -> list[ChangeEntry]:
+        return sorted(self.entries, key=lambda e: e.date, reverse=True)
 
 
 class Customer(Strict):
@@ -61,7 +90,7 @@ class Customer(Strict):
     name: str
     status: Literal["active", "revoked"]
     access_end: dt.date | None = None
-    bundles: list[str] = Field(default_factory=list)
+    groups: list[str] = Field(default_factory=list)
     add: list[str] = Field(default_factory=list)
     exclude: list[str] = Field(default_factory=list)
     allowlist: list[str] = Field(min_length=1)

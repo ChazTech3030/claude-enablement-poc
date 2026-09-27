@@ -1,0 +1,4 @@
+id: claude-chat
+title: "Claude chat"
+summary: "Everyday use of Claude: conversations, prompting, projects and artifacts."
+modules: [chat-getting-started, prompting-fundamentals, projects-and-artifacts]
