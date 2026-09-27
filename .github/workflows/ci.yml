@@ -64,14 +64,5 @@ jobs:
           args=$(for s in $slugs; do printf -- '--slug %s ' "$s"; done)
           dk build --prefix "$PREFIX" $args
           dk deploy --prefix "$PREFIX" --no-wait $args
-          python - "$PREFIX" $slugs <<'PY'
-          import html, json, sys
-          prefix, slugs = sys.argv[1], sys.argv[2:]
-          reasons = json.load(open("affected.json"))["reasons"]
-          items = "".join(f'<li><a href="{s}/">{html.escape(s)}</a> <small>{html.escape(", ".join(reasons.get(s, ["unchanged sample"])))}</small></li>' for s in slugs)
-          open("build/preview-index.html", "w").write(
-              f'<!doctype html><html lang="en-GB"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-              f'<title>Preview</title><link rel="stylesheet" href="/auth/auth.css"><main><div class="card"><h1>PR preview</h1>'
-              f'<p class="sub">Customers affected by this pull request, built exactly as they will deploy.</p><ul>{items}</ul></div></main></html>')
-          PY
+          dk preview-index --affected affected.json $args --pr "${{ github.event.pull_request.number }}" --out build/preview-index.html
           aws s3 cp build/preview-index.html "s3://$DK_BUCKET/$PREFIX/index.html" --content-type "text/html; charset=utf-8" --only-show-errors
