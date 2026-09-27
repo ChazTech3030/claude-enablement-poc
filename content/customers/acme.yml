@@ -3,8 +3,8 @@ slug: acme
 name: Acme Holdings (fictional)
 status: active                  # active | revoked
 access_end: 2027-03-31          # informational; revocation is by status
-bundles: [governance-starter]
-add: [claude-code-intro]
+groups: [claude-chat, claude-code, governance]
+add: []
 exclude: [admin-controls]
 allowlist:
   - acme.example

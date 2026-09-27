@@ -8,6 +8,7 @@ G1 and G2 run inside Repo.load. This module adds:
 """
 from __future__ import annotations
 
+import datetime as dt
 import re
 from pathlib import Path
 
@@ -101,21 +102,39 @@ def check_external_links(repo: Repo, timeout: float = 8.0) -> list[str]:
     return warnings
 
 
-def check_changelog(repo: Repo, changed_files: list[str], labels: list[str]) -> list[str]:
-    """G2 changelog rule (plan 6.6). changed_files are repo-relative paths from the PR diff."""
+REVIEW_WINDOW_DAYS = 14
+
+
+def check_changelog(repo: Repo, changed_files: list[str], labels: list[str],
+                    today: dt.date | None = None) -> list[str]:
+    """G2 change rules for a PR (plan 6.6). changed_files are repo-relative paths from the PR diff.
+
+    A module whose content changed must, in the same PR:
+      - add a changelog entry (content/changelog/{id}.yml), and
+      - bump last_reviewed in its meta.yml to a recent date (the author has just reviewed it).
+    `dk review <id> --note "..."` does both. The no-changelog label exempts typo-level fixes.
+    """
     if "no-changelog" in labels:
         return []
-    changed_modules: set[str] = set()
+    today = today or dt.date.today()
+    content_changed: set[str] = set()
+    meta_changed: set[str] = set()
     changelog_touched: set[str] = set()
     for f in changed_files:
         parts = Path(f).parts
-        if len(parts) >= 4 and parts[0] == "content" and parts[1] == "modules":
-            changed_modules.add(parts[3])
-        if len(parts) == 3 and parts[:2] == ("content", "changelog") and f.endswith(".md"):
+        if len(parts) >= 5 and parts[:2] == ("content", "modules"):
+            (meta_changed if parts[4] == "meta.yml" else content_changed).add(parts[3])
+        if len(parts) == 3 and parts[:2] == ("content", "changelog"):
             changelog_touched.add(Path(f).stem)
-    return [
-        f"G2 content/changelog/{m}.md: module '{m}' changed without a changelog entry "
-        "(add one, or label the PR no-changelog for typo-level fixes)"
-        for m in sorted(changed_modules - changelog_touched)
-        if m in repo.modules
-    ]
+    problems = []
+    for m in sorted(content_changed):
+        if m not in repo.modules:
+            continue
+        if m not in changelog_touched:
+            problems.append(f"G2 content/changelog/{m}.yml: module '{m}' changed without a changelog entry "
+                            f"(run: dk review {m} --note \"...\", or label the PR no-changelog for typo fixes)")
+        reviewed = repo.modules[m].meta.last_reviewed
+        if m not in meta_changed or (today - reviewed).days > REVIEW_WINDOW_DAYS:
+            problems.append(f"G2 content/modules/en-GB/{m}/meta.yml: content changed but last_reviewed "
+                            f"({reviewed}) was not updated (run: dk review {m})")
+    return problems

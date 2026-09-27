@@ -3,7 +3,7 @@ slug: oldco
 name: OldCo Trading (fictional)
 status: revoked
 access_end: 2026-06-30
-bundles: [governance-starter]
+groups: [governance]
 add: []
 exclude: []
 allowlist:

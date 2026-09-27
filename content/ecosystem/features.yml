@@ -22,3 +22,5 @@ features:
     title: Skills
   - id: web-search
     title: Web search
+  - id: cowork
+    title: Cowork

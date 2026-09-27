@@ -12,6 +12,8 @@ from . import build as b
 from . import dashboard, gates, plan
 from .repo import ContentError, Repo
 
+LF = chr(10)
+
 
 def _repo(args) -> Repo:
     try:
@@ -45,7 +47,7 @@ def cmd_validate(args) -> None:
     if args.external:
         for w in gates.check_external_links(repo):
             print(w)
-    print(f"OK: {len(repo.modules)} modules, {len(repo.bundles)} bundles, {len(repo.customers)} customers, "
+    print(f"OK: {len(repo.modules)} modules, {len(repo.groups)} groups, {len(repo.customers)} customers, "
           f"{len(repo.events)} ecosystem events")
 
 
@@ -158,6 +160,32 @@ def cmd_audit(args) -> None:
     audit_closures(GitHub(dry_run=args.dry_run), days=args.days)
 
 
+def cmd_review(args) -> None:
+    """Record a review: set last_reviewed, and add a changelog entry when something changed."""
+    import re
+    import yaml
+    repo = _repo(args)
+    if args.module not in repo.modules:
+        _fail([f"unknown module '{args.module}'"])
+    day = dt.date.fromisoformat(args.date) if args.date else dt.date.today()
+    meta = repo.modules[args.module].path / "meta.yml"
+    text = meta.read_text(encoding="utf-8")
+    text, n = re.subn(r"^last_reviewed:.*$", f"last_reviewed: {day.isoformat()}", text, count=1, flags=re.M)
+    if not n:
+        _fail([f"{meta}: no last_reviewed line"])
+    meta.write_text(text, encoding="utf-8", newline=LF)
+    print(f"{args.module}: last_reviewed = {day}")
+    if args.note:
+        log = Path(args.content) / "changelog" / f"{args.module}.yml"
+        data = yaml.safe_load(log.read_text(encoding="utf-8")) if log.exists() else {"entries": []}
+        data["entries"].insert(0, {"date": day, "change": args.note})
+        log.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8", newline=LF)
+        print(f"{args.module}: changelog += {day}: {args.note}")
+    else:
+        print("No note given: recorded as reviewed with no change. Close the review issue with outcome-no-change "
+              "and a comment beginning 'No change:'.")
+
+
 def cmd_match(args) -> None:
     from .issues import GitHub, match_events
     gh = None if args.offline else GitHub(dry_run=args.dry_run)
@@ -226,6 +254,12 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--days", type=int, default=7)
     s.add_argument("--dry-run", action="store_true")
     s.set_defaults(fn=cmd_audit)
+
+    s = sub.add_parser("review", help="record a module review: bump last_reviewed, optionally add a changelog entry")
+    s.add_argument("module")
+    s.add_argument("--note", help="customer-readable description of what changed (omit for a no-change review)")
+    s.add_argument("--date", help="review date (default today)")
+    s.set_defaults(fn=cmd_review)
 
     s = sub.add_parser("match", help="match ecosystem events to modules and customers; raise issues")
     s.add_argument("--event", action="append")

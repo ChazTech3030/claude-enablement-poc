@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from .model import Bundle, Customer, Event, Feature, Meta, Source
+from .model import Changelog, Customer, Event, Feature, Group, Meta, Source
 
 LOCALE = "en-GB"
 
@@ -36,6 +36,8 @@ def _fmt(err: ValidationError) -> str:
 class Module:
     meta: Meta
     path: Path
+    group: str = ""
+    changelog: Changelog | None = None
 
     @property
     def id(self) -> str:
@@ -46,7 +48,7 @@ class Module:
 class Repo:
     root: Path
     modules: dict[str, Module] = field(default_factory=dict)
-    bundles: dict[str, Bundle] = field(default_factory=dict)
+    groups: dict[str, Group] = field(default_factory=dict)
     customers: dict[str, Customer] = field(default_factory=dict)
     features: dict[str, Feature] = field(default_factory=dict)
     sources: dict[str, Source] = field(default_factory=dict)
@@ -60,7 +62,8 @@ class Repo:
         problems: list[str] = []
         repo._load_features(problems)
         repo._load_modules(problems)
-        repo._load_bundles(problems)
+        repo._load_groups(problems)
+        repo._load_changelogs(problems)
         repo._load_customers(problems)
         repo._load_ecosystem(problems)
         if not problems:
@@ -103,16 +106,43 @@ class Repo:
                 problems.append(f"G1 {rel}/meta.yml: unknown claude_features {unknown} (see ecosystem/features.yml)")
             self.modules[meta.id] = Module(meta=meta, path=d)
 
-    def _load_bundles(self, problems: list[str]) -> None:
-        for p in sorted((self.root / "bundles").glob("*.yml")):
+    def _load_groups(self, problems: list[str]) -> None:
+        for p in sorted((self.root / "groups").glob("*.yml")):
+            rel = p.relative_to(self.root).as_posix()
             try:
-                b = Bundle(**_load_yaml(p))
+                g = Group(**_load_yaml(p))
             except ValidationError as e:
-                problems.append(f"G2 {p.relative_to(self.root)}: {_fmt(e)}")
+                problems.append(f"G2 {rel}: {_fmt(e)}")
                 continue
-            if b.id != p.stem:
-                problems.append(f"G2 {p.relative_to(self.root)}: id '{b.id}' does not equal file name")
-            self.bundles[b.id] = b
+            except (ValueError, yaml.YAMLError) as e:
+                problems.append(f"G2 {rel}: {e}")
+                continue
+            if g.id != p.stem:
+                problems.append(f"G2 {rel}: id '{g.id}' does not equal file name")
+            self.groups[g.id] = g
+            for m in g.modules:
+                if m not in self.modules:
+                    problems.append(f"G2 {rel}: unknown module '{m}'")
+                elif self.modules[m].group:
+                    problems.append(f"G2 {rel}: module '{m}' is already in group '{self.modules[m].group}'")
+                else:
+                    self.modules[m].group = g.id
+        for m in self.modules.values():
+            if not m.group:
+                problems.append(f"G2 modules/{LOCALE}/{m.id}: module is not in any group (content/groups/*.yml)")
+
+    def _load_changelogs(self, problems: list[str]) -> None:
+        for p in sorted((self.root / "changelog").glob("*.yml")):
+            rel = p.relative_to(self.root).as_posix()
+            if p.stem not in self.modules:
+                problems.append(f"G2 {rel}: no module '{p.stem}'")
+                continue
+            try:
+                self.modules[p.stem].changelog = Changelog(**_load_yaml(p))
+            except ValidationError as e:
+                problems.append(f"G2 {rel}: {_fmt(e)}")
+            except (ValueError, yaml.YAMLError) as e:
+                problems.append(f"G2 {rel}: {e}")
 
     def _load_customers(self, problems: list[str]) -> None:
         for p in sorted((self.root / "customers").glob("*.yml")):
@@ -120,6 +150,9 @@ class Repo:
                 c = Customer(**_load_yaml(p))
             except ValidationError as e:
                 problems.append(f"G2 {p.relative_to(self.root)}: {_fmt(e)}")
+                continue
+            except (ValueError, yaml.YAMLError) as e:
+                problems.append(f"G2 {p.relative_to(self.root)}: {e}")
                 continue
             if c.slug != p.stem:
                 problems.append(f"G2 {p.relative_to(self.root)}: slug '{c.slug}' does not equal file name")
@@ -151,15 +184,11 @@ class Repo:
             self.events[ev.id] = ev
 
     def _check_integrity(self, problems: list[str]) -> None:
-        for b in self.bundles.values():
-            for m in b.modules:
-                if m not in self.modules:
-                    problems.append(f"G2 bundles/{b.id}.yml: unknown module '{m}'")
         for c in self.customers.values():
             where = f"customers/{c.slug}.yml"
-            for b in c.bundles:
-                if b not in self.bundles:
-                    problems.append(f"G2 {where}: unknown bundle '{b}'")
+            for g in c.groups:
+                if g not in self.groups:
+                    problems.append(f"G2 {where}: unknown group '{g}'")
             for m in [*c.add, *c.exclude]:
                 if m not in self.modules:
                     problems.append(f"G2 {where}: unknown module '{m}'")
@@ -175,11 +204,11 @@ class Repo:
 
     # ---- resolution ----------------------------------------------------
     def resolve(self, slug: str) -> list[str]:
-        """Union of bundle modules plus add, minus exclude; bundle order then add order."""
+        """Modules of the customer's groups plus add, minus exclude; group order then add order."""
         c = self.customers[slug]
         out: list[str] = []
-        for b in c.bundles:
-            for m in self.bundles[b].modules:
+        for g in c.groups:
+            for m in self.groups[g].modules:
                 if m not in out:
                     out.append(m)
         for m in c.add:
@@ -195,6 +224,23 @@ class Repo:
                 for m in self.resolve(c.slug):
                     rev[m].append(c.slug)
         return rev
+
+    def sections(self, slug: str) -> list[tuple[Group, list[str]]]:
+        """The customer's resolved modules arranged by group, in group-file order.
+
+        Modules brought in with `add` appear under their own group even if the customer
+        does not hold that whole group.
+        """
+        mods = self.resolve(slug)
+        order = list(self.customers[slug].groups)
+        order += [self.modules[m].group for m in mods if self.modules[m].group not in order]
+        out = []
+        for gid in order:
+            g = self.groups[gid]
+            inside = [m for m in g.modules if m in mods]
+            if inside:
+                out.append((g, inside))
+        return out
 
     def active_customers(self) -> list[Customer]:
         return [c for c in self.customers.values() if c.active]

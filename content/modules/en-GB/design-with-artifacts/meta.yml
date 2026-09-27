@@ -1,0 +1,8 @@
+id: design-with-artifacts
+title: Design drafts with artifacts
+owner: ChazTech3030
+tags: [design]
+claude_features: [artifacts]
+review_cadence_days: 90
+last_reviewed: 2026-09-27
+summary: Producing quick layout and diagram drafts to react to.

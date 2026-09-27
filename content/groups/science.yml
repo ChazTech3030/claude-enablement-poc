@@ -1,0 +1,4 @@
+id: science
+title: "Science"
+summary: "Data analysis and reproducible write-ups."
+modules: [science-data-analysis]

@@ -32,13 +32,14 @@ def render(repo: Repo, open_issues: list[dict] | None, generated_at: str, versio
         ) or "none"
         rows.append(
             f"<tr class='{status}'><td><strong>{html.escape(mod.meta.title)}</strong><br><code>{mod.id}</code></td>"
+            f"<td>{html.escape(repo.groups[mod.group].title if mod.group in repo.groups else '')}</td>"
             f"<td>{html.escape(mod.meta.owner)}</td><td>{mod.meta.review_cadence_days} days</td>"
             f"<td>{mod.meta.last_reviewed}</td><td><span class='pill {status}'>{label}</span></td>"
             f"<td>{', '.join(rev[mod.id]) or '<em>none</em>'}</td><td>{iss_html}</td></tr>"
         )
     customers = "".join(
         f"<li><strong>{html.escape(c.name)}</strong> (<code>{c.slug}</code>): {c.status}, "
-        f"{len(repo.resolve(c.slug))} modules</li>"
+        f"{len(repo.resolve(c.slug))} modules in {', '.join(c.groups) or 'no groups'}</li>"
         for c in repo.customers.values()
     )
     issue_note = "" if open_issues is not None else "<p class='note'>Issue data unavailable for this build.</p>"
@@ -62,7 +63,7 @@ code {{ font-size:.85em; color:var(--muted); }} a {{ color:inherit; }} .note {{ 
 <p class="sub">Generated {generated_at} from content version {html.escape(version)}. Internal: Version 1 only.</p>
 {issue_note}
 <div class="table-wrap"><table>
-<thead><tr><th>Module</th><th>Owner</th><th>Cadence</th><th>Last reviewed</th><th>Status</th><th>Customers</th><th>Open issues</th></tr></thead>
+<thead><tr><th>Module</th><th>Group</th><th>Owner</th><th>Cadence</th><th>Last reviewed</th><th>Status</th><th>Customers</th><th>Open issues</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
 <h2>Customers</h2><ul>{customers}</ul>
 </main></body></html>"""

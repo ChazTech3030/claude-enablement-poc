@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <script>
+    /* Apply saved accessibility preferences before first paint (see assets/dk.js). */
+    try {
+      var d = document.documentElement;
+      if (localStorage.getItem("dk-contrast") === "high") d.setAttribute("data-dk-contrast", "high");
+      if (localStorage.getItem("dk-font") === "dyslexic") d.setAttribute("data-dk-font", "dyslexic");
+    } catch (e) {}
+  </script>
+{% endblock %}

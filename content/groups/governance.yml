@@ -1,0 +1,4 @@
+id: governance
+title: "Governance and administration"
+summary: "Policy, data handling and the admin console."
+modules: [governance-intro, data-handling-basics, admin-controls]

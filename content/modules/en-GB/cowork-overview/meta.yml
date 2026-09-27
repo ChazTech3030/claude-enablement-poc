@@ -1,0 +1,8 @@
+id: cowork-overview
+title: Handing Claude a task with Cowork
+owner: ChazTech3030
+tags: [getting-started, cowork]
+claude_features: [cowork]
+review_cadence_days: 30
+last_reviewed: 2026-09-27
+summary: When to use Cowork instead of a conversation, and how to brief it.

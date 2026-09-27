@@ -1,0 +1,4 @@
+id: research
+title: "Research"
+summary: "Sourced research and checking evidence."
+modules: [research-with-web-search]
