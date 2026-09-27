@@ -1,22 +1,134 @@
-# Sources the Phase 2 change monitor will watch. Nothing polls these in the PoC;
-# events/ holds mock events in the shape the worker will emit.
-# url_verified: false means the exact endpoint is to be confirmed when the worker is built.
+# Official Claude update sources, collected by `dk updates` into the Claude updates dashboard
+# (/c/internal/updates/). Every URL below was checked on 27 September 2026.
+#
+# type:
+#   feed                RSS or Atom (docs changelogs, GitHub release feeds)
+#   release_notes_page  help-centre release notes: dated sections, one item per bold feature title
+#   news_page           listing page of dated article cards (anthropic.com/news)
+#   blog_page           listing page of article cards (claude.com/blog)
+#   marketplace         plugin marketplace index (marketplace.json): reports plugins added since the last check
+#
+# Not included yet: status.claude.com (incidents, not updates), YouTube (serves a consent page to
+# scripts), X/LinkedIn (no free feed; X needs its paid API).
 sources:
+  # ---- Claude apps (web, desktop, mobile) ----
+  - id: claude-apps-release-notes
+    title: Claude apps release notes
+    category: Claude apps
+    type: release_notes_page
+    url: https://support.claude.com/en/articles/12138966-release-notes
+    url_verified: true
+    owner: platform
+
+  # ---- Claude Platform (API) ----
+  - id: docs-release-notes
+    title: Claude Platform release notes
+    category: Claude Platform
+    type: feed
+    url: https://platform.claude.com/docs/en/release-notes/feed.xml
+    url_verified: true
+    owner: platform
+
+  # ---- Claude Code ----
+  - id: claude-code-changelog
+    title: Claude Code changelog
+    category: Claude Code
+    type: feed
+    url: https://code.claude.com/docs/en/changelog/rss.xml
+    url_verified: true
+    owner: platform
+  - id: claude-code-action-releases
+    title: Claude Code GitHub Action releases
+    category: Claude Code
+    type: feed
+    url: https://github.com/anthropics/claude-code-action/releases.atom
+    url_verified: true
+    owner: platform
+  - id: sandbox-runtime-releases
+    title: Sandbox runtime releases
+    category: Claude Code
+    type: feed
+    url: https://github.com/anthropics/sandbox-runtime/releases.atom
+    url_verified: true
+    owner: platform
+
+  # ---- Claude Agent SDK ----
+  - id: agent-sdk-python-releases
+    title: Agent SDK (Python) releases
+    category: Agent SDK
+    type: feed
+    url: https://github.com/anthropics/claude-agent-sdk-python/releases.atom
+    url_verified: true
+    owner: platform
+  - id: agent-sdk-typescript-releases
+    title: Agent SDK (TypeScript) releases
+    category: Agent SDK
+    type: feed
+    url: https://github.com/anthropics/claude-agent-sdk-typescript/releases.atom
+    url_verified: true
+    owner: platform
+
+  # ---- Client SDKs ----
+  - id: sdk-python-releases
+    title: Python SDK releases
+    category: Client SDKs
+    type: feed
+    url: https://github.com/anthropics/anthropic-sdk-python/releases.atom
+    url_verified: true
+    owner: platform
+  - id: sdk-typescript-releases
+    title: TypeScript SDK releases
+    category: Client SDKs
+    type: feed
+    url: https://github.com/anthropics/anthropic-sdk-typescript/releases.atom
+    url_verified: true
+    owner: platform
+  - id: sdk-go-releases
+    title: Go SDK releases
+    category: Client SDKs
+    type: feed
+    url: https://github.com/anthropics/anthropic-sdk-go/releases.atom
+    url_verified: true
+    owner: platform
+
+  # ---- Plugins, skills and integrations (new entries only) ----
+  - id: plugins-official
+    title: Official plugin marketplace
+    category: Plugins and skills
+    type: marketplace
+    noun: plugin
+    url: https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/.claude-plugin/marketplace.json
+    url_verified: true
+    owner: platform
+  - id: knowledge-work-plugins
+    title: Knowledge work plugins
+    category: Plugins and skills
+    type: marketplace
+    noun: plugin
+    url: https://raw.githubusercontent.com/anthropics/knowledge-work-plugins/main/.claude-plugin/marketplace.json
+    url_verified: true
+    owner: platform
+  - id: skills
+    title: Anthropic skills
+    category: Plugins and skills
+    type: marketplace
+    noun: skill
+    url: https://raw.githubusercontent.com/anthropics/skills/main/.claude-plugin/marketplace.json
+    url_verified: true
+    owner: platform
+
+  # ---- Announcements ----
   - id: anthropic-news
     title: Anthropic news
-    type: feed
+    category: News
+    type: news_page
     url: https://www.anthropic.com/news
-    url_verified: false
+    url_verified: true
     owner: platform
   - id: claude-blog
     title: Claude blog
-    type: page_diff          # no native feed; changedetection.io page diff
+    category: Blog
+    type: blog_page
     url: https://claude.com/blog
-    url_verified: false
-    owner: platform
-  - id: docs-release-notes
-    title: Claude docs release notes
-    type: page_diff
-    url: https://docs.claude.com/en/release-notes/overview
-    url_verified: false
+    url_verified: true
     owner: platform
