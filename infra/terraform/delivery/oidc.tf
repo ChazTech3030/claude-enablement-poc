@@ -50,7 +50,7 @@ data "aws_iam_policy_document" "trust_preview" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["${local.gh_sub}:pull_request"]
+      values   = ["${local.gh_sub}:pull_request", "${local.gh_sub}:environment:preview"] # env jobs get the environment subject
     }
   }
 }
