@@ -1,0 +1,24 @@
+# Controlled vocabulary for `claude_features` in module meta.yml.
+# Gate G1 rejects any module that names a feature not listed here.
+# Phase 2's change monitor matches ecosystem events to modules through these ids.
+features:
+  - id: projects
+    title: Projects
+  - id: artifacts
+    title: Artifacts
+  - id: claude-code
+    title: Claude Code
+  - id: admin-console
+    title: Admin console
+  - id: sso
+    title: Single sign-on and SCIM
+  - id: data-retention
+    title: Data retention controls
+  - id: prompting
+    title: Prompting and model behaviour
+  - id: mcp
+    title: Model Context Protocol connectors
+  - id: skills
+    title: Skills
+  - id: web-search
+    title: Web search

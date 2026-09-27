@@ -1,0 +1,14 @@
+# Fictional customer whose access has ended. Never built; published as revoked.
+slug: oldco
+name: OldCo Trading (fictional)
+status: revoked
+access_end: 2026-06-30
+bundles: [governance-starter]
+add: []
+exclude: []
+allowlist:
+  - oldco.example
+branding:
+  --brand-primary: "#6b7280"
+  --brand-accent: "#9ca3af"
+expected_learners: 40

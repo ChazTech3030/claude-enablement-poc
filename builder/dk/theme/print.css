@@ -1,0 +1,60 @@
+/* Print stylesheet for the WeasyPrint PDF. The @page footer (stamp line) is injected by dk. */
+@page {
+  size: A4;
+  margin: 20mm 18mm 24mm 18mm;
+  @bottom-left {
+    font-family: "DejaVu Sans", Arial, sans-serif;
+    font-size: 7pt;
+    color: #555;
+    width: 80%;
+  }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-family: "DejaVu Sans", Arial, sans-serif;
+    font-size: 8pt;
+    color: #555;
+  }
+}
+@page :first {
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+html { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; }
+h1, h2, h3 { color: var(--brand-primary); line-height: 1.2; }
+h1 { font-size: 20pt; }
+h2 { font-size: 14pt; margin-top: 1.4em; }
+h3 { font-size: 11.5pt; }
+a { color: var(--brand-primary); text-decoration: none; }
+a.headerlink { display: none; }
+img { max-width: 100%; }
+
+.title-page { page-break-after: always; padding-top: 40mm; }
+.title-page .logo { height: 22mm; margin-bottom: 12mm; }
+.title-page .doc-title { font-size: 30pt; margin: 0; }
+.title-page .customer { font-size: 16pt; color: #333; margin-top: 4mm; }
+.dk-stamp {
+  margin-top: 40mm;
+  border-left: 4px solid var(--brand-accent);
+  padding: 4mm 6mm;
+  background: #f6f7f9;
+  font-size: 9pt;
+}
+.dk-stamp p { margin: 1.5mm 0; }
+.dk-stamp .notice { font-weight: bold; margin-top: 4mm; }
+
+.toc { page-break-after: always; }
+.toc ol { font-size: 11pt; line-height: 1.9; }
+.toc a::after { content: leader(".") target-counter(attr(href), page); }
+
+.module { page-break-before: always; }
+.module:first-of-type { page-break-before: auto; }
+
+table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 9pt; }
+th, td { border: 1px solid #d0d4da; padding: 4px 6px; text-align: left; vertical-align: top; }
+th { background: #eef1f5; }
+
+.admonition { border-left: 4px solid var(--brand-accent); background: #fafafa; padding: 2mm 4mm; margin: 1em 0; }
+.admonition-title { font-weight: bold; margin: 0 0 1mm 0; }
+blockquote { border-left: 3px solid #ccc; margin-left: 0; padding-left: 4mm; color: #444; }
+.task-list-item { list-style: none; }

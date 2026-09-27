@@ -1,0 +1,16 @@
+# Fictional customer for the PoC.
+slug: acme
+name: Acme Holdings (fictional)
+status: active                  # active | revoked
+access_end: 2027-03-31          # informational; revocation is by status
+bundles: [governance-starter]
+add: [claude-code-intro]
+exclude: [admin-controls]
+allowlist:
+  - acme.example
+  - gmail.com                   # DEMO ONLY: lets the presenter sign in as an Acme learner
+branding:
+  --brand-primary: "#1f5fa8"
+  --brand-accent: "#f2a900"
+  logo: assets/acme/logo.svg
+expected_learners: 250

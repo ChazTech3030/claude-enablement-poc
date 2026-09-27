@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+  <rect width="640" height="200" fill="#f6f8fa"/>
+  <g fill="#fff" stroke="#1f5fa8" stroke-width="2">
+    <rect x="20" y="30" width="180" height="60" rx="8"/>
+    <rect x="230" y="30" width="180" height="60" rx="8"/>
+    <rect x="440" y="30" width="180" height="60" rx="8"/>
+    <rect x="230" y="120" width="180" height="60" rx="8"/>
+  </g>
+  <g text-anchor="middle" fill="#0b2540">
+    <text x="110" y="65">Executive sponsor</text>
+    <text x="320" y="65">Workspace owner</text>
+    <text x="530" y="65">Data protection lead</text>
+    <text x="320" y="155">Champions</text>
+  </g>
+  <g stroke="#1f5fa8" stroke-width="2">
+    <line x1="200" y1="60" x2="230" y2="60"/>
+    <line x1="410" y1="60" x2="440" y2="60"/>
+    <line x1="320" y1="90" x2="320" y2="120"/>
+  </g>
+</svg>

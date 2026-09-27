@@ -1,0 +1,22 @@
+# Sources the Phase 2 change monitor will watch. Nothing polls these in the PoC;
+# events/ holds mock events in the shape the worker will emit.
+# url_verified: false means the exact endpoint is to be confirmed when the worker is built.
+sources:
+  - id: anthropic-news
+    title: Anthropic news
+    type: feed
+    url: https://www.anthropic.com/news
+    url_verified: false
+    owner: platform
+  - id: claude-blog
+    title: Claude blog
+    type: page_diff          # no native feed; changedetection.io page diff
+    url: https://claude.com/blog
+    url_verified: false
+    owner: platform
+  - id: docs-release-notes
+    title: Claude docs release notes
+    type: page_diff
+    url: https://docs.claude.com/en/release-notes/overview
+    url_verified: false
+    owner: platform

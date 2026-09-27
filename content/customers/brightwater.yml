@@ -1,0 +1,15 @@
+# Fictional customer for the PoC.
+slug: brightwater
+name: Brightwater Utilities (fictional)
+status: active
+access_end: 2027-06-30
+bundles: [builder-essentials]
+add: [admin-controls]
+exclude: []
+allowlist:
+  - brightwater.example
+branding:
+  --brand-primary: "#0f766e"
+  --brand-accent: "#84cc16"
+  logo: assets/brightwater/logo.svg
+expected_learners: 120

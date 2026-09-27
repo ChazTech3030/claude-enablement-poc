@@ -1,0 +1,12 @@
+# MOCK EVENT - synthetic data for the PoC. Shape matches what the Phase 2 worker will emit.
+id: 2026-09-22-mock-claude-code-permissions
+mock: true
+source: docs-release-notes
+detected_at: 2026-09-22T09:14:00Z
+title: "Claude Code: revised permission prompts (mock)"
+url: https://example.invalid/mock/claude-code-permissions
+summary: Permission prompts for file edits and shell commands are grouped and can be allowlisted per project.
+excerpt: |
+  + Permission prompts are now grouped by tool.
+  + Project-level allowlists can be committed to the repository.
+features: [claude-code]

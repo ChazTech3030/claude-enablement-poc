@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Page not found</title>
+  <link rel="stylesheet" href="/auth/auth.css">
+</head>
+<body>
+<main><div class="card">
+  <h1>Page not found</h1>
+  <p class="sub">This page does not exist. It may have moved when the material was updated.</p>
+  <p><a id="home" href="/">Go to the start of your material</a></p>
+</div></main>
+<script>
+  (function () {
+    var m = location.pathname.match(/^(\/c\/(?:internal\/previews\/pr-\d+\/)?[a-z0-9-]{3,32}\/)/);
+    if (m) document.getElementById('home').setAttribute('href', m[1]);
+  })();
+</script>
+</body>
+</html>

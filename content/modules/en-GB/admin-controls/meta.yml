@@ -1,0 +1,8 @@
+id: admin-controls
+title: Administration controls
+owner: ChazTech3030
+tags: [governance, administration]
+claude_features: [admin-console, sso]
+review_cadence_days: 30
+last_reviewed: 2026-09-15
+summary: A tour of the admin console, single sign-on and user provisioning for workspace owners.

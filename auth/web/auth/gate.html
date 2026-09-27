@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Sign in required</title>
+  <link rel="stylesheet" href="/auth/auth.css">
+  <script>
+    // Served by CloudFront for any 403. location.pathname is still the originally requested path.
+    (function () {
+      var m = location.pathname.match(/^\/c\/([a-z0-9-]{3,32})\//);
+      if (m) location.replace('/auth/login.html?c=' + m[1] + '&return=' + encodeURIComponent(location.pathname));
+    })();
+  </script>
+</head>
+<body>
+<main><div class="card">
+  <h1>Sign in required</h1>
+  <p class="sub">Open the link you were given for your organisation's enablement site to sign in.</p>
+</div></main>
+</body>
+</html>

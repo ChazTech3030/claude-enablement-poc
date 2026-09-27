@@ -1,0 +1,20 @@
+/* Customer branding is CSS variables only (--brand-primary, --brand-accent), injected above by dk. */
+:root,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--brand-primary);
+  --md-primary-fg-color--light: var(--brand-primary);
+  --md-primary-fg-color--dark: var(--brand-primary);
+  --md-accent-fg-color: var(--brand-accent);
+  --md-typeset-a-color: var(--brand-primary);
+}
+
+.md-header__button.md-logo img,
+.md-nav__button.md-logo img {
+  height: 1.8rem;
+  width: auto;
+}
+
+.dk-version {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}

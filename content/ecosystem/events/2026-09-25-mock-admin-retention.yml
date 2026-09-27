@@ -1,0 +1,11 @@
+# MOCK EVENT - synthetic data for the PoC.
+id: 2026-09-25-mock-admin-retention
+mock: true
+source: anthropic-news
+detected_at: 2026-09-25T15:02:00Z
+title: "Admin console: organisation-level retention periods (mock)"
+url: https://example.invalid/mock/admin-retention
+summary: Organisation owners can set a custom retention period for conversations from the admin console.
+excerpt: |
+  + Owners can now choose a retention period between 30 days and 5 years.
+features: [admin-console, data-retention]

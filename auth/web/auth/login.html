@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Sign in</title>
+  <link rel="stylesheet" href="/auth/auth.css">
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>Sign in</h1>
+    <p class="sub" id="for">Enablement material</p>
+
+    <form id="step-email" novalidate>
+      <label for="email">Work email address</label>
+      <input id="email" name="email" type="email" autocomplete="email" required>
+      <button type="submit">Email me a code</button>
+    </form>
+
+    <form id="step-code" hidden novalidate>
+      <p class="sub" id="sent-to"></p>
+      <label for="code">6-digit code</label>
+      <input id="code" class="code" name="code" inputmode="numeric" autocomplete="one-time-code"
+             pattern="[0-9]{6}" maxlength="6" required>
+      <button type="submit">Sign in</button>
+      <button type="button" class="link" id="restart">Use a different address or get a new code</button>
+      <div class="demo" id="demo" hidden></div>
+    </form>
+
+    <p class="msg" id="msg" role="status" aria-live="polite"></p>
+
+    <p class="help">
+      Codes arrive within a minute and expire after 10 minutes. If nothing arrives, check your junk folder,
+      then ask your IT team to allow email from the sending domain.
+    </p>
+  </div>
+</main>
+<script src="/auth/auth.js"></script>
+</body>
+</html>

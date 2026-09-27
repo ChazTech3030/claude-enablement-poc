@@ -1,0 +1,28 @@
+# Remove a PR's preview prefix when the PR closes (plan 6.10). S3 lifecycle expires it after 14 days as a backstop.
+name: preview-cleanup
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    env:
+      DK_BUCKET: ${{ vars.DK_BUCKET }}
+      DK_DISTRIBUTION_ID: ${{ vars.DK_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q -e builder
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: dk unpreview --pr ${{ github.event.pull_request.number }}

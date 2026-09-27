@@ -1,0 +1,8 @@
+id: prompting-fundamentals
+title: Prompting fundamentals
+owner: ChazTech3030
+tags: [skills, prompting]
+claude_features: [prompting]
+review_cadence_days: 180
+last_reviewed: 2026-07-01
+summary: Clear instructions, useful context and worked examples - the habits that make Claude's output dependable.

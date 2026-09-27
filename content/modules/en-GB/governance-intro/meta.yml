@@ -1,0 +1,8 @@
+id: governance-intro
+title: Introduction to Claude governance
+owner: ChazTech3030
+tags: [governance, policy]
+claude_features: [admin-console, data-retention]
+review_cadence_days: 90
+last_reviewed: 2026-09-10
+summary: Why an AI usage policy matters and the decisions an organisation needs to make before rolling Claude out.

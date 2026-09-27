@@ -1,0 +1,61 @@
+# main: selective rebuild, deploy, publish allowlists and revocations (plan 6.3-6.7).
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Rebuild every active customer
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://${{ vars.DK_DELIVERY_DOMAIN }}/
+    env:
+      DK_BUCKET: ${{ vars.DK_BUCKET }}
+      DK_DISTRIBUTION_ID: ${{ vars.DK_DISTRIBUTION_ID }}
+      DK_KVS_ARN: ${{ vars.DK_KVS_ARN }}
+      DK_ALLOWLIST_TABLE: ${{ vars.DK_ALLOWLIST_TABLE }}
+      DK_DELIVERY_DOMAIN: ${{ vars.DK_DELIVERY_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Gates
+        run: dk validate
+      - name: Plan
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then dk plan --base "" --out affected.json
+          else dk plan --from-state --out affected.json; fi
+      - name: Build and deploy affected customers
+        run: |
+          args=$(jq -r '.customers[] | "--slug " + .' affected.json | tr '\n' ' ')
+          if [ -n "$args" ]; then
+            dk build $args
+            dk deploy $args
+          else
+            echo "No customer content changed."
+          fi
+      - name: Publish allowlists and revocations; record deployed sha
+        run: dk publish --record-sha "${{ github.sha }}"
+      - name: Summary
+        run: |
+          { echo "### Deployed ${GITHUB_SHA::7}"; echo; echo '```json'; cat affected.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

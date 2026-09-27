@@ -1,0 +1,11 @@
+region                 = "eu-west-1"
+domain_name            = "customercdndemo.com"
+internal_email_domains = ["version1.com"]
+ops_email              = "ops@example.com"
+github_repository      = "ChazTech3030/claude-enablement-poc"
+
+# SES stays in the sandbox for the demo: only these addresses receive codes (each must click AWS's verification email).
+ses_sandbox_recipients = ["you@example.com"]
+
+# DEMO ONLY - flip to true only if email delivery fails on the day (technical debt register).
+demo_show_code = false

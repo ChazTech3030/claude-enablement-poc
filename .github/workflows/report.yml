@@ -1,0 +1,51 @@
+# Daily governance: overdue reviews, closure audit, ecosystem matching, freshness dashboard (plan 6.9, 6.11).
+name: report
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["content/ecosystem/events/**", "content/modules/**/meta.yml"]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+concurrency:
+  group: report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://${{ vars.DK_DELIVERY_DOMAIN }}/c/internal/dashboard/
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      DK_BUCKET: ${{ vars.DK_BUCKET }}
+      DK_DISTRIBUTION_ID: ${{ vars.DK_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q -e builder
+      - name: Overdue review issues
+        run: dk overdue
+      - name: Closure audit
+        run: dk audit
+      - name: Ecosystem changes -> issues
+        run: dk match
+      - name: Dashboard
+        run: dk dashboard --out build/dashboard
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Publish dashboard
+        run: |
+          aws s3 sync build/dashboard "s3://$DK_BUCKET/c/internal/dashboard/" --delete --only-show-errors
+          aws cloudfront create-invalidation --distribution-id "$DK_DISTRIBUTION_ID" --paths "/c/internal/dashboard/*" >/dev/null

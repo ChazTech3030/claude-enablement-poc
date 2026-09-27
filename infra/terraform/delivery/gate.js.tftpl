@@ -1,0 +1,57 @@
+// CloudFront Function "gate": viewer request on /c/* (plan 7.4, decision 2.17). Runtime cloudfront-js-2.0.
+// Signature and policy validation is done by the trusted key group, not here.
+import cf from 'cloudfront';
+
+const kvs = cf.kvs('${kvs_id}');
+const SLUG = /^\/c\/([a-z0-9-]{3,32})(\/.*)?$/;
+
+function redirect(location, noStore) {
+  const headers = { location: { value: location } };
+  if (noStore) headers['cache-control'] = { value: 'no-store' };
+  return { statusCode: 302, statusDescription: 'Found', headers: headers };
+}
+
+function withQuery(uri, qs) {
+  const parts = [];
+  for (const k in qs) {
+    const v = qs[k];
+    if (v.multiValue) v.multiValue.forEach(function (m) { parts.push(k + '=' + m.value); });
+    else parts.push(k + '=' + v.value);
+  }
+  return parts.length ? uri + '?' + parts.join('&') : uri;
+}
+
+async function handler(event) {
+  const req = event.request;
+  const m = req.uri.match(SLUG);
+  if (!m) return req;
+  const slug = m[1];
+  const rest = m[2];
+
+  if (!rest) return redirect(withQuery('/c/' + slug + '/', req.querystring), false);
+
+  // 1. Per-customer revocation switch (decision 2.5)
+  let revoked = false;
+  try {
+    await kvs.get('revoked:' + slug);
+    revoked = true;
+  } catch (e) {
+    revoked = false; // key absent
+  }
+  if (revoked) return redirect('/auth/revoked.html', true);
+
+  // 2. No cookies: straight to sign-in
+  const c = req.cookies;
+  if (!c['CloudFront-Policy'] || !c['CloudFront-Signature'] || !c['CloudFront-Key-Pair-Id']) {
+    return redirect('/auth/login.html?c=' + slug + '&return=' + encodeURIComponent(req.uri), true);
+  }
+
+  // 3. Directory URLs (MkDocs use_directory_urls): /x/ -> /x/index.html, /x -> 302 /x/
+  if (req.uri.endsWith('/')) {
+    req.uri += 'index.html';
+  } else {
+    const last = req.uri.substring(req.uri.lastIndexOf('/') + 1);
+    if (last.indexOf('.') === -1) return redirect(withQuery(req.uri + '/', req.querystring), false);
+  }
+  return req;
+}

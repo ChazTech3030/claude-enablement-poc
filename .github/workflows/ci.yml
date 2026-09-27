@@ -1,0 +1,77 @@
+# Pull requests: gates, tests and a signed-in preview (plan 6.1, 6.10).
+name: ci
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Changed files
+        run: git diff --name-only "origin/${{ github.base_ref }}...HEAD" | tee changed.txt
+      - name: Gates G1-G5 (G4 external links warn only)
+        run: >
+          dk validate --external --changed-files changed.txt
+          --labels "${{ join(github.event.pull_request.labels.*.name, ',') }}"
+      - name: Unit tests
+        run: pytest -q auth/tests builder/tests
+      - name: Build every active customer with PDFs (G3 strict links, G6 PDF render)
+        run: dk build --domain "${{ vars.DK_DELIVERY_DOMAIN || 'learn.example.test' }}"
+
+  preview:
+    needs: validate
+    # Fork PRs get no OIDC token and are not previewed.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'labeled' && github.event.action != 'unlabeled'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    environment:
+      name: preview
+      url: https://${{ vars.DK_DELIVERY_DOMAIN }}/c/internal/previews/pr-${{ github.event.pull_request.number }}/
+    env:
+      PREFIX: c/internal/previews/pr-${{ github.event.pull_request.number }}
+      DK_BUCKET: ${{ vars.DK_BUCKET }}
+      DK_DISTRIBUTION_ID: ${{ vars.DK_DISTRIBUTION_ID }}
+      DK_DELIVERY_DOMAIN: ${{ vars.DK_DELIVERY_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PREVIEW_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Plan (customers affected by this PR)
+        run: dk plan --base "origin/${{ github.base_ref }}" --out affected.json
+      - name: Build and upload preview
+        run: |
+          slugs=$(jq -r '.customers[]' affected.json)
+          [ -z "$slugs" ] && slugs=$(dk resolve | jq -r 'keys[]' | head -1)   # always show something
+          args=$(for s in $slugs; do printf -- '--slug %s ' "$s"; done)
+          dk build --prefix "$PREFIX" $args
+          dk deploy --prefix "$PREFIX" --no-wait $args
+          python - "$PREFIX" $slugs <<'PY'
+          import html, json, sys
+          prefix, slugs = sys.argv[1], sys.argv[2:]
+          reasons = json.load(open("affected.json"))["reasons"]
+          items = "".join(f'<li><a href="{s}/">{html.escape(s)}</a> <small>{html.escape(", ".join(reasons.get(s, ["unchanged sample"])))}</small></li>' for s in slugs)
+          open("build/preview-index.html", "w").write(
+              f'<!doctype html><html lang="en-GB"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+              f'<title>Preview</title><link rel="stylesheet" href="/auth/auth.css"><main><div class="card"><h1>PR preview</h1>'
+              f'<p class="sub">Customers affected by this pull request, built exactly as they will deploy.</p><ul>{items}</ul></div></main></html>')
+          PY
+          aws s3 cp build/preview-index.html "s3://$DK_BUCKET/$PREFIX/index.html" --content-type "text/html; charset=utf-8" --only-show-errors

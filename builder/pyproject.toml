@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dk"
+version = "0.1.0"
+description = "Delivery kit: validates, resolves, builds and publishes the enablement content."
+requires-python = ">=3.12"
+dependencies = [
+  "mkdocs>=1.6,<2",
+  "mkdocs-material>=9.5,<10",
+  "pymdown-extensions>=10",
+  "markdown>=3.6",
+  "pydantic>=2.8,<3",
+  "PyYAML>=6",
+  "boto3>=1.35",
+  "botocore[crt]>=1.35",   # CloudFront KeyValueStore requires SigV4A
+  "requests>=2.32",
+]
+
+[project.optional-dependencies]
+pdf = ["weasyprint>=62"]
+test = ["pytest>=8"]
+
+[project.scripts]
+dk = "dk.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["dk*"]
+
+[tool.setuptools.package-data]
+dk = ["theme/**/*"]
