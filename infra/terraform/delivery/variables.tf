@@ -88,6 +88,12 @@ variable "auth_rate_limit" {
   default     = 100
 }
 
+variable "code_requests_per_window" {
+  description = "Code requests allowed per email address per 15 minutes (plan 8.1: 3)."
+  type        = number
+  default     = 3
+}
+
 variable "enable_logging" {
   type    = bool
   default = true

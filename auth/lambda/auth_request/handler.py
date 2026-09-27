@@ -10,7 +10,7 @@ from botocore.exceptions import ClientError
 
 import authcommon as ac
 
-RATE_MAX = 3
+RATE_MAX = int(os.environ.get("RATE_MAX", "3"))  # per address per window; plan 8.1 specifies 3
 RATE_WINDOW = 15 * 60
 CODE_TTL = 600
 ACCEPTED = {"status": "accepted", "message": "If this address is eligible, a code is on its way."}

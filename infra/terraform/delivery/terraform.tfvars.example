@@ -11,3 +11,6 @@ ses_sandbox_recipients = ["you@example.com"]
 
 # DEMO ONLY - flip to true only if email delivery fails on the day (technical debt register).
 demo_show_code = false
+
+# Rehearsal/demo value (technical debt): plan 8.1 specifies 3.
+code_requests_per_window = 10

@@ -88,6 +88,7 @@ resource "aws_lambda_function" "auth" {
       SES_FROM              = local.ses_from
       SES_CONFIG_SET        = aws_sesv2_configuration_set.auth.configuration_set_name
       DEMO_SHOW_CODE        = var.demo_show_code ? "true" : "false"
+      RATE_MAX              = tostring(var.code_requests_per_window)
     }
   }
 
