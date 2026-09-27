@@ -1,6 +1,14 @@
 # CI identity: GitHub Actions OIDC (rev 3). Two roles, so a PR preview can never write live customer prefixes.
 # This is CI-to-AWS federation only; learner sign-in federation remains out of scope (plan section 0).
 
+# GitHub's subject claim embeds the owner and repository IDs: repo:{owner}@{owner_id}/{repo}@{repo_id}:...
+# Exact match on IDs means a deleted-and-recreated or look-alike repository cannot assume these roles.
+locals {
+  gh_owner = split("/", var.github_repository)[0]
+  gh_repo  = split("/", var.github_repository)[1]
+  gh_sub   = "repo:${local.gh_owner}@${var.github_owner_id}/${local.gh_repo}@${var.github_repository_id}"
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
@@ -22,7 +30,7 @@ data "aws_iam_policy_document" "trust_deploy" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:environment:production"]
+      values   = ["${local.gh_sub}:environment:production"]
     }
   }
 }
@@ -42,7 +50,7 @@ data "aws_iam_policy_document" "trust_preview" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:pull_request"]
+      values   = ["${local.gh_sub}:pull_request"]
     }
   }
 }

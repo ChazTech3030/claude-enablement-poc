@@ -66,6 +66,16 @@ variable "github_repository" {
   type        = string
 }
 
+variable "github_owner_id" {
+  description = "Numeric GitHub owner ID (gh api users/{owner} --jq .id)."
+  type        = string
+}
+
+variable "github_repository_id" {
+  description = "Numeric GitHub repository ID (gh api repos/{owner}/{repo} --jq .id)."
+  type        = string
+}
+
 # ---- controls ----
 variable "enable_waf" {
   type    = bool

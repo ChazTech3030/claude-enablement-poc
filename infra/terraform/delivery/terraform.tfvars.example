@@ -3,6 +3,8 @@ domain_name            = "customercdndemo.com"
 internal_email_domains = ["version1.com"]
 ops_email              = "ops@example.com"
 github_repository      = "ChazTech3030/claude-enablement-poc"
+github_owner_id        = "45007570"
+github_repository_id   = "1390719609"
 
 # SES stays in the sandbox for the demo: only these addresses receive codes (each must click AWS's verification email).
 ses_sandbox_recipients = ["you@example.com"]
