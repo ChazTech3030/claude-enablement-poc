@@ -46,10 +46,16 @@ resource "aws_cloudfront_origin_access_control" "lambda" {
   signing_protocol                  = "sigv4"
 }
 
-# Forward no cookies and no query strings. The viewer's x-amz-content-sha256 is consumed by OAC signing.
+# No query strings. The viewer's x-amz-content-sha256 is consumed by OAC signing.
+# Cookies: CloudFront strips Set-Cookie from origin responses for any cookie name it does not forward, so the
+# three signed-cookie names must be allowlisted or verify's cookies never reach the browser. Browsers never
+# send them here (they are scoped to Path=/c/{slug}/), so in practice nothing is forwarded.
 resource "aws_cloudfront_origin_request_policy" "auth_api" {
   name = "${local.p}-auth-api"
-  cookies_config { cookie_behavior = "none" }
+  cookies_config {
+    cookie_behavior = "whitelist"
+    cookies { items = ["CloudFront-Policy", "CloudFront-Signature", "CloudFront-Key-Pair-Id"] }
+  }
   query_strings_config { query_string_behavior = "none" }
   headers_config {
     header_behavior = "whitelist"

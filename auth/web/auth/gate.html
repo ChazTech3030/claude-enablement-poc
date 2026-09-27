@@ -8,8 +8,9 @@
   <link rel="stylesheet" href="/auth/auth.css">
   <script>
     // Served by CloudFront for any 403. location.pathname is still the originally requested path.
+    // CloudFront checks signed cookies before the gate function runs, so this page is the usual route to sign-in.
     (function () {
-      var m = location.pathname.match(/^\/c\/([a-z0-9-]{3,32})\//);
+      var m = location.pathname.match(/^\/c\/([a-z0-9-]{3,32})(\/|$)/);
       if (m) location.replace('/auth/login.html?c=' + m[1] + '&return=' + encodeURIComponent(location.pathname));
     })();
   </script>
