@@ -134,6 +134,15 @@ def cmd_unpreview(args) -> None:
     deploy.invalidate([f"/{prefix}/*"], wait=False)
 
 
+def cmd_preview_index(args) -> None:
+    from . import preview
+    repo = _repo(args)
+    affected = json.loads(Path(args.affected).read_text()) if args.affected else {}
+    slugs = args.slug or affected.get("customers", [])
+    target = preview.write(repo, affected, slugs, args.pr, Path(args.out))
+    print(f"preview index -> {target}")
+
+
 def cmd_dashboard(args) -> None:
     repo = _repo(args)
     root = Path(args.content).resolve().parent
@@ -239,6 +248,13 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("unpreview", help="delete a PR preview prefix")
     s.add_argument("--pr", required=True, type=int)
     s.set_defaults(fn=cmd_unpreview)
+
+    s = sub.add_parser("preview-index", help="render the PR preview landing page")
+    s.add_argument("--affected", help="affected.json from dk plan")
+    s.add_argument("--slug", action="append", help="customers built for the preview (default: affected)")
+    s.add_argument("--pr", help="pull request number")
+    s.add_argument("--out", default="build/preview-index.html")
+    s.set_defaults(fn=cmd_preview_index)
 
     s = sub.add_parser("dashboard", help="render the freshness dashboard")
     s.add_argument("--out", default="build/dashboard")
