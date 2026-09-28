@@ -143,7 +143,7 @@ aside a:hover {{ text-decoration: underline; }}
     <h1>Claude updates</h1>
     <p>Every official update to Claude's apps, platform, tools, SDKs and plugins, collected from {len(sources)} sources.
     Last checked {_ago(state.get("checked"), now)}{f' · <strong>{failing} source(s) failing</strong>' if failing else ''}.
-    Internal: Version 1 only. <a href="../dashboard/">Content freshness</a></p>
+    Internal only. <a href="../dashboard/">Content freshness</a></p>
   </header>
   <div class="controls">
     <input class="search" id="q" type="search" placeholder="Search updates" aria-label="Search updates">
