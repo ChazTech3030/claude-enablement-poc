@@ -33,7 +33,7 @@ def render(repo: Repo, open_issues: list[dict] | None, generated_at: str, versio
         rows.append(
             f"<tr class='{status}'><td><strong>{html.escape(mod.meta.title)}</strong><br><code>{mod.id}</code></td>"
             f"<td>{html.escape(repo.groups[mod.group].title if mod.group in repo.groups else '')}</td>"
-            f"<td>{html.escape(mod.meta.owner)}</td><td>{mod.meta.review_cadence_days} days</td>"
+            f"<td>{mod.meta.review_cadence_days} days</td>"
             f"<td>{mod.meta.last_reviewed}</td><td><span class='pill {status}'>{label}</span></td>"
             f"<td>{', '.join(rev[mod.id]) or '<em>none</em>'}</td><td>{iss_html}</td></tr>"
         )
@@ -60,10 +60,10 @@ th {{ font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; color:var
 code {{ font-size:.85em; color:var(--muted); }} a {{ color:inherit; }} .note {{ color:var(--warn); }}
 </style></head><body><main>
 <h1>Content freshness</h1>
-<p class="sub">Generated {generated_at} from content version {html.escape(version)}. Internal: Version 1 only. <a href="../updates/">Claude updates</a></p>
+<p class="sub">Generated {generated_at} from content version {html.escape(version)}. Internal only. <a href="../updates/">Claude updates</a></p>
 {issue_note}
 <div class="table-wrap"><table>
-<thead><tr><th>Module</th><th>Group</th><th>Owner</th><th>Cadence</th><th>Last reviewed</th><th>Status</th><th>Customers</th><th>Open issues</th></tr></thead>
+<thead><tr><th>Module</th><th>Group</th><th>Cadence</th><th>Last reviewed</th><th>Status</th><th>Customers</th><th>Open issues</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
 <h2>Customers</h2><ul>{customers}</ul>
 </main></body></html>"""

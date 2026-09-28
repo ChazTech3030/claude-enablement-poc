@@ -13,7 +13,7 @@
     return;
   }
   $('for').textContent = slug === 'internal'
-    ? 'Version 1 internal previews and dashboard'
+    ? 'Internal previews and dashboards'
     : 'Enablement material for ' + slug.replace(/-/g, ' ');
 
   function say(text, kind) {

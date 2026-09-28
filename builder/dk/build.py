@@ -137,7 +137,7 @@ def _home_page(repo: Repo, slug: str, ctx: BuildContext) -> str:
     return "\n".join([
         "---", "hide:", "  - toc", "---", "",
         f"# {c.name}", "",
-        '<p class="dk-lede">Your Claude enablement material, kept up to date by Version 1. '
+        '<p class="dk-lede">Your Claude enablement material, kept up to date as Claude changes. '
         "Choose an area to begin.</p>", "",
         f'<div class="dk-cards">{"".join(cards)}</div>', "",
         f'<p class="dk-pdf"><a class="md-button" href="{ctx.pdf_name(slug)}">Download the PDF edition</a></p>', "",

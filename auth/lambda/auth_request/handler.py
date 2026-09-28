@@ -56,7 +56,7 @@ def _allowlisted(slug: str, domain: str) -> bool:
 
 
 def _customer_name(slug: str) -> str:
-    return "Version 1" if slug == "internal" else slug.replace("-", " ").title()
+    return "internal" if slug == "internal" else slug.replace("-", " ").title()
 
 
 def _send(email: str, slug: str, code: str) -> None:
