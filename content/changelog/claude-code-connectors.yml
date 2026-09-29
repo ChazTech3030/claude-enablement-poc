@@ -1,3 +1,6 @@
 entries:
-  - date: 2026-09-27
-    change: "Split out of Getting started with Claude Code as its own snippet."
+- date: 2026-09-29
+  change: Added guidance on plugins from the Claude directory, following the 25 September
+    release notes.
+- date: 2026-09-27
+  change: Split out of Getting started with Claude Code as its own snippet.
